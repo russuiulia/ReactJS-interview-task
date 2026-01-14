@@ -1,5 +1,5 @@
 const BASE_URL = "https://api.github.com";
-const token = "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" //hardcoded blablabla
+
 export const searchRepos = async (
   query: string,
   page = 1,
@@ -9,9 +9,7 @@ export const searchRepos = async (
   const res = await fetch(
     `${BASE_URL}/search/repositories?q=${encodeURIComponent(query)}&page=${page}&per_page=${per_page}`,
     {
-      signal, headers: {
-        Authorization: `token ${token}`,
-      },
+      signal
     }
   );
 
