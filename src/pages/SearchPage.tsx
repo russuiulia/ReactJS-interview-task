@@ -1,51 +1,52 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import { useSearchRepos } from "../utils/search/useSearchRepos";
 import { SearchInput } from "../components/SearchInput";
 import { RepoList } from "../components/RepoList";
 import { Loader } from "../components/Loader";
-import { ErrorState } from "../components/Error";
+import { ErrorState } from "../components/ErrorState";
+import { searchReducer, initialSearchState } from "../utils/reducers/searchReducer";
 
 export const SearchPage = () => {
-  const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState(query);
-  const [page, setPage] = useState(1);
-  const [repos, setRepos] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [state, dispatch] = useReducer(searchReducer, initialSearchState);
   const sentinelRef = useRef(null);
 
+  // Handle query changes with debouncing
   useEffect(() => {
-    setPage(1);
-    setRepos([]);
-    if (!query.trim()) {
-      setDebouncedQuery("")
-      setLoading(false);
+    dispatch({ type: "SET_LOADING", payload: true });
+
+    if (!state.query.trim()) {
+      dispatch({ type: "RESET_SEARCH" });
+      return;
     }
-    else
-      setLoading(true);
 
     const timer = setTimeout(() => {
-      setDebouncedQuery(query);
+      dispatch({ type: "SET_DEBOUNCED_QUERY", payload: state.query });
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [state.query]);
 
-  const { data, error, hasMore } = useSearchRepos(debouncedQuery, page);
+  const { data, error, hasMore } = useSearchRepos(state.debouncedQuery, state.page);
 
+  // Handle incoming data
   useEffect(() => {
-    if (data?.items) {
-      setRepos((prev) => (page === 1 ? data.items : [...prev, ...data.items]));
-      setLoading(false);
-    }
-  }, [data, page]);
+    if (!data?.items) return;
 
+    const action = state.page === 1
+      ? { type: "SET_REPOS" as const, payload: data.items }
+      : { type: "APPEND_REPOS" as const, payload: data.items };
+
+    dispatch(action);
+  }, [data, state.page]);
+
+  // Handle infinite scroll
   useEffect(() => {
-    if (!hasMore || loading) return;
+    if (!hasMore || state.loading) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          setPage((prev) => prev + 1);
+          dispatch({ type: "INCREMENT_PAGE" });
         }
       },
       { rootMargin: "200px" }
@@ -57,23 +58,27 @@ export const SearchPage = () => {
     return () => {
       if (sentinel) observer.unobserve(sentinel);
     };
-  }, [loading, hasMore]);
+  }, [state.loading, hasMore]);
+
+  const handleSearch = (query: string) => {
+    dispatch({ type: "SET_QUERY", payload: query });
+  };
 
   return (
     <div>
       <h1>GitHub Repository Explorer</h1>
 
-      <SearchInput onSearch={setQuery} />
+      <SearchInput onSearch={handleSearch} />
 
       {error && <ErrorState message={error} />}
 
-      {repos.length === 0 && debouncedQuery && !loading && !error && (
+      {state.repos.length === 0 && state.debouncedQuery && !state.loading && !error && (
         <ErrorState message="No repositories found." />
       )}
 
-      <RepoList repos={repos} />
+      <RepoList repos={state.repos} />
 
-      {loading && <Loader />}
+      {state.loading && <Loader />}
 
       <div ref={sentinelRef} style={{ height: 1 }} />
     </div>

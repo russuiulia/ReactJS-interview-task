@@ -1,28 +1,23 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import { searchRepos } from '../../api/github';
+import { repoSearchReducer, initialRepoSearchState } from "../reducers/repoSearchReducer";
 
 const PER_PAGE = 30;
 
 export const useSearchRepos = (query: string, page: number) => {
-  const [data, setData] = useState<any | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
+  const [state, dispatch] = useReducer(repoSearchReducer, initialRepoSearchState);
   const requestIdRef = useRef(0);
 
   useEffect(() => {
     if (!query.trim()) {
-      setData(null);
-      setHasMore(false);
-      setLoading(false);
+      dispatch({ type: "RESET" });
       return;
     }
 
     const currentId = ++requestIdRef.current;
     let canceled = false;
 
-    setLoading(true);
-    setError(null);
+    dispatch({ type: "FETCH_START" });
 
     const controller = new AbortController();
 
@@ -31,18 +26,22 @@ export const useSearchRepos = (query: string, page: number) => {
         if (canceled) return;
         if (currentId !== requestIdRef.current) return;
 
-        setData(json);
         const alreadyLoaded = page * PER_PAGE;
-        setHasMore(alreadyLoaded < json.total_count);
+        const hasMore = alreadyLoaded < json.total_count;
+
+        dispatch({
+          type: "FETCH_SUCCESS",
+          payload: { data: json, hasMore }
+        });
       })
       .catch((err) => {
         if (canceled) return;
         if (err.name === "AbortError") return;
 
-        setError(err.message || "Unexpected error");
-      })
-      .finally(() => {
-        if (!canceled) setLoading(false);
+        dispatch({
+          type: "FETCH_ERROR",
+          payload: err.message || "Unexpected error"
+        });
       });
 
     return () => {
@@ -51,5 +50,10 @@ export const useSearchRepos = (query: string, page: number) => {
     };
   }, [query, page]);
 
-  return { data, loading, error, hasMore };
+  return {
+    data: state.data,
+    loading: state.loading,
+    error: state.error,
+    hasMore: state.hasMore
+  };
 };

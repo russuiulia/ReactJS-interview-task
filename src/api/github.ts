@@ -1,9 +1,11 @@
+import { PER_PAGE } from '../utils/const';
+
 const BASE_URL = "https://api.github.com";
 
 export const searchRepos = async (
   query: string,
   page = 1,
-  per_page = 30,
+  per_page = PER_PAGE,
   signal?: AbortSignal
 ) => {
   const res = await fetch(
@@ -18,20 +20,26 @@ export const searchRepos = async (
   return res.json();
 };
 
-export const getRepoDetails = async (owner: string, repo: string) => {
-  const res = await fetch(`${BASE_URL}/repos/${owner}/${repo}`);
+export const getRepoDetails = async (owner: string, repo: string, signal?: AbortSignal) => {
+  const res = await fetch(`${BASE_URL}/repos/${owner}/${repo}`, {
+    signal
+  });
   if (!res.ok) throw new Error("Failed to fetch repository details");
   return res.json();
 };
 
-export const getRepoContributors = async (owner: string, repo: string) => {
-  const res = await fetch(`${BASE_URL}/repos/${owner}/${repo}/contributors`);
+export const getRepoContributors = async (owner: string, repo: string, signal?: AbortSignal) => {
+  const res = await fetch(`${BASE_URL}/repos/${owner}/${repo}/contributors`, {
+    signal
+  });
   if (!res.ok) throw new Error("Failed to fetch contributors");
   return res.json();
 };
 
-export const getRepoLanguages = async (owner: string, repo: string) => {
-  const res = await fetch(`${BASE_URL}/repos/${owner}/${repo}/languages`);
+export const getRepoLanguages = async (owner: string, repo: string, signal?: AbortSignal) => {
+  const res = await fetch(`${BASE_URL}/repos/${owner}/${repo}/languages`, {
+    signal
+  });
   if (!res.ok) throw new Error("Failed to fetch languages");
   return res.json();
 };

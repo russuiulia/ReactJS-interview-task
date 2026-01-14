@@ -1,30 +1,54 @@
-import { useState, useEffect } from "react";
+import { useReducer, useEffect } from "react";
 import { getRepoDetails, getRepoContributors, getRepoLanguages } from "../../api/github";
+import { repoDetailsReducer, initialRepoDetailsState } from "../reducers/repoDetailsReducer";
 
 export const useRepoDetails = (owner: string, name: string) => {
-  const [repo, setRepo] = useState<any>(null);
-  const [contributors, setContributors] = useState<any[]>([]);
-  const [languages, setLanguages] = useState<any>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [state, dispatch] = useReducer(repoDetailsReducer, initialRepoDetailsState);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
+    let canceled = false;
+    const controller = new AbortController();
+
+    dispatch({ type: "FETCH_START" });
 
     Promise.all([
-      getRepoDetails(owner, name),
-      getRepoContributors(owner, name),
-      getRepoLanguages(owner, name),
+      getRepoDetails(owner, name, controller.signal),
+      getRepoContributors(owner, name, controller.signal),
+      getRepoLanguages(owner, name, controller.signal),
     ])
       .then(([repoData, contributorsData, languagesData]) => {
-        setRepo(repoData);
-        setContributors(contributorsData);
-        setLanguages(languagesData);
+        if (canceled) return;
+        
+        dispatch({
+          type: "FETCH_SUCCESS",
+          payload: {
+            repo: repoData,
+            contributors: contributorsData,
+            languages: languagesData,
+          },
+        });
       })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+      .catch((err) => {
+        if (canceled) return;
+        if (err.name === "AbortError") return;
+        
+        dispatch({
+          type: "FETCH_ERROR",
+          payload: err.message,
+        });
+      });
+
+    return () => {
+      canceled = true;
+      controller.abort();
+    };
   }, [owner, name]);
 
-  return { repo, contributors, languages, loading, error };
+  return {
+    repo: state.repo,
+    contributors: state.contributors,
+    languages: state.languages,
+    loading: state.loading,
+    error: state.error,
+  };
 };
