@@ -6,24 +6,22 @@ export interface SearchState {
   debouncedQuery: string;
   page: number;
   repos: Repository[];
-  loading: boolean;
 }
 
 export type SearchAction =
   | { type: "SET_QUERY"; payload: string }
   | { type: "SET_DEBOUNCED_QUERY"; payload: string }
   | { type: "RESET_SEARCH" }
+  | { type: "RESET_PAGINATION" }
   | { type: "SET_REPOS"; payload: Repository[] }
   | { type: "APPEND_REPOS"; payload: Repository[] }
-  | { type: "INCREMENT_PAGE" }
-  | { type: "SET_LOADING"; payload: boolean };
+  | { type: "INCREMENT_PAGE" };
 
 export const initialSearchState: SearchState = {
   query: "",
   debouncedQuery: "",
   page: 1,
   repos: [],
-  loading: false,
 };
 
 export const searchReducer: Reducer<SearchState, SearchAction> = (state, action) => {
@@ -37,7 +35,6 @@ export const searchReducer: Reducer<SearchState, SearchAction> = (state, action)
       return {
         ...state,
         debouncedQuery: action.payload,
-        loading: false,
       };
     case "RESET_SEARCH":
       return {
@@ -45,29 +42,27 @@ export const searchReducer: Reducer<SearchState, SearchAction> = (state, action)
         page: 1,
         repos: [],
         debouncedQuery: "",
-        loading: false,
+      };
+    case "RESET_PAGINATION":
+      return {
+        ...state,
+        page: 1,
+        repos: [],
       };
     case "SET_REPOS":
       return {
         ...state,
         repos: action.payload,
-        loading: false,
       };
     case "APPEND_REPOS":
       return {
         ...state,
         repos: [...state.repos, ...action.payload],
-        loading: false,
       };
     case "INCREMENT_PAGE":
       return {
         ...state,
         page: state.page + 1,
-      };
-    case "SET_LOADING":
-      return {
-        ...state,
-        loading: action.payload,
       };
     default:
       return state;

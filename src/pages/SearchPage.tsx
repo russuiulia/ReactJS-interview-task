@@ -10,14 +10,13 @@ export const SearchPage = () => {
   const [state, dispatch] = useReducer(searchReducer, initialSearchState);
   const sentinelRef = useRef(null);
 
-  // Handle query changes with debouncing
   useEffect(() => {
-    dispatch({ type: "SET_LOADING", payload: true });
-
     if (!state.query.trim()) {
       dispatch({ type: "RESET_SEARCH" });
       return;
     }
+
+    dispatch({ type: "RESET_PAGINATION" });
 
     const timer = setTimeout(() => {
       dispatch({ type: "SET_DEBOUNCED_QUERY", payload: state.query });
@@ -26,9 +25,8 @@ export const SearchPage = () => {
     return () => clearTimeout(timer);
   }, [state.query]);
 
-  const { data, error, hasMore } = useSearchRepos(state.debouncedQuery, state.page);
+  const { data, error, hasMore, loading } = useSearchRepos(state.debouncedQuery, state.page);
 
-  // Handle incoming data
   useEffect(() => {
     if (!data?.items) return;
 
@@ -39,9 +37,8 @@ export const SearchPage = () => {
     dispatch(action);
   }, [data, state.page]);
 
-  // Handle infinite scroll
   useEffect(() => {
-    if (!hasMore || state.loading) return;
+    if (!hasMore || loading) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -58,7 +55,7 @@ export const SearchPage = () => {
     return () => {
       if (sentinel) observer.unobserve(sentinel);
     };
-  }, [state.loading, hasMore]);
+  }, [loading, hasMore]);
 
   const handleSearch = (query: string) => {
     dispatch({ type: "SET_QUERY", payload: query });
@@ -72,13 +69,13 @@ export const SearchPage = () => {
 
       {error && <ErrorState message={error} />}
 
-      {state.repos.length === 0 && state.debouncedQuery && !state.loading && !error && (
+      {state.repos.length === 0 && state.debouncedQuery && !loading && !error && (
         <ErrorState message="No repositories found." />
       )}
 
       <RepoList repos={state.repos} />
 
-      {state.loading && <Loader />}
+      {loading && <Loader />}
 
       <div ref={sentinelRef} style={{ height: 1 }} />
     </div>
