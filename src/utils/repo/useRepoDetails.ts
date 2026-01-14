@@ -2,7 +2,7 @@ import { useReducer, useEffect } from "react";
 import { getRepoDetails, getRepoContributors, getRepoLanguages } from "../../api/github";
 import { repoDetailsReducer, initialRepoDetailsState } from "../reducers/repoDetailsReducer";
 
-export const useRepoDetails = (owner: string, name: string) => {
+export const useRepoDetails = (owner: string, name: string, refreshKey = 0) => {
   const [state, dispatch] = useReducer(repoDetailsReducer, initialRepoDetailsState);
 
   useEffect(() => {
@@ -18,7 +18,7 @@ export const useRepoDetails = (owner: string, name: string) => {
     ])
       .then(([repoData, contributorsData, languagesData]) => {
         if (canceled) return;
-        
+
         dispatch({
           type: "FETCH_SUCCESS",
           payload: {
@@ -31,7 +31,7 @@ export const useRepoDetails = (owner: string, name: string) => {
       .catch((err) => {
         if (canceled) return;
         if (err.name === "AbortError") return;
-        
+
         dispatch({
           type: "FETCH_ERROR",
           payload: err.message,
@@ -42,7 +42,7 @@ export const useRepoDetails = (owner: string, name: string) => {
       canceled = true;
       controller.abort();
     };
-  }, [owner, name]);
+  }, [owner, name, refreshKey]);
 
   return {
     repo: state.repo,
