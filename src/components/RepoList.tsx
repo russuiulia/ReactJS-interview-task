@@ -3,10 +3,12 @@ import { RepoCard } from "./RepoCard";
 
 export const RepoList = ({ repos }: { repos: Repository[] }) => {
   return (
-    <div className="repo-list">
+    <ul className="repo-list" role="list" aria-label="Repository search results">
       {repos.map((r) => (
-        <RepoCard key={r.id} repo={r} />
+        <li key={r.id}>
+          <RepoCard repo={r} />
+        </li>
       ))}
-    </div>
+    </ul>
   );
 };

@@ -2,7 +2,6 @@ import { useState } from "react";
 
 interface SearchInputProps {
   onSearch: (value: string) => void;
-  delay?: number;
   initialValue?: string;
 }
 
@@ -11,21 +10,22 @@ export function SearchInput({
   initialValue = ""
 }: SearchInputProps) {
   const [value, setValue] = useState(initialValue);
+
   return (
-    <input
-      type="text"
-      value={value}
-      placeholder="Search…"
-      onChange={(e) => {
-        setValue(e.target.value);
-        onSearch(e.target.value.trim());
-      }}
-      style={{
-        padding: "10px",
-        width: "100%",
-        maxWidth: "500px",
-        fontSize: "16px"
-      }}
-    />
+    <div className="search-input-container">
+      <input
+        id="repo-search"
+        type="search"
+        value={value}
+        placeholder="Search repositories..."
+        onChange={(e) => {
+          setValue(e.target.value);
+          onSearch(e.target.value.trim());
+        }}
+        className="search-input"
+        aria-label="Search GitHub repositories"
+        aria-describedby="search-hint"
+      />
+    </div>
   );
 }
