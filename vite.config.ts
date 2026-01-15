@@ -10,4 +10,13 @@ export default defineConfig({
     setupFiles: './src/setupTests.ts',
     css: true,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom']
+        }
+      }
+    }
+  }
 })

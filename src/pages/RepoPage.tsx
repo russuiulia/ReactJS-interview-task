@@ -1,10 +1,11 @@
 
 import { useNavigate, useParams } from "react-router-dom";
 import { useMemo } from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, type PieLabelRenderProps } from "recharts";
 import { useRepoDetails } from "../utils/repo/useRepoDetails";
 import { Loader } from "../components/Loader";
 import { ErrorState } from "../components/ErrorState";
+import type { LanguageData } from '../types/charts';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658'];
 
@@ -75,7 +76,10 @@ export const RepoPage = () => {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={(entry: any) => `${entry.name} ${entry.percentage}%`}
+                    label={(props: PieLabelRenderProps) => {
+                      const data: LanguageData = props.payload as LanguageData;
+                      return `${data.name} ${data.percentage}%`;
+                    }}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
