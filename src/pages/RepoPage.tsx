@@ -1,5 +1,5 @@
 
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useMemo } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { useRepoDetails } from "../utils/repo/useRepoDetails";
@@ -10,6 +10,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'
 
 export const RepoPage = () => {
   const { owner, name } = useParams<{ owner: string; name: string }>();
+  const navigate = useNavigate();
 
   const { repo, contributors, languages, loading, error } = useRepoDetails(
     owner || "",
@@ -35,6 +36,13 @@ export const RepoPage = () => {
 
   return (
     <div className="repo-page">
+      <button
+        onClick={() => navigate(-1)}
+        className="back-button"
+        aria-label="Go back to search results"
+      >
+        ← Back
+      </button>
       <div className="repo-header">
         <h1>{repo.full_name}</h1>
         <span className="auto-refresh-badge">
