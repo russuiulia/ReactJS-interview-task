@@ -1,26 +1,21 @@
+
 import { useParams } from "react-router-dom";
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { useRepoDetails } from "../utils/repo/useRepoDetails";
 import { Loader } from "../components/Loader";
 import { ErrorState } from "../components/ErrorState";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658'];
-const REFRESH_INTERVAL = 30000; // 30 seconds
 
 export const RepoPage = () => {
   const { owner, name } = useParams<{ owner: string; name: string }>();
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [lastRefresh, setLastRefresh] = useState(Date.now());
-  const timerRef = useRef<HTMLSpanElement>(null);
 
   const { repo, contributors, languages, loading, error } = useRepoDetails(
     owner || "",
-    name || "",
-    refreshKey
+    name || ""
   );
 
-  // Prepare language data for chart (memoized to prevent re-renders)
   const languageData = useMemo(() => {
     const totalBytes = Object.values(languages).reduce((sum, bytes) => sum + bytes, 0);
     return Object.entries(languages).map(([name, bytes]) => ({
@@ -29,34 +24,6 @@ export const RepoPage = () => {
       percentage: ((bytes / totalBytes) * 100).toFixed(1)
     }));
   }, [languages]);
-
-  // Update timer display directly without re-rendering
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (timerRef.current) {
-        const seconds = Math.floor((Date.now() - lastRefresh) / 1000);
-        timerRef.current.textContent = `Updated ${seconds}s ago`;
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [lastRefresh]);
-
-  // Auto-refresh every 30 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRefreshKey(prev => prev + 1);
-      setLastRefresh(Date.now());
-    }, REFRESH_INTERVAL);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Manual refresh
-  const handleRefresh = () => {
-    setRefreshKey(prev => prev + 1);
-    setLastRefresh(Date.now());
-  };
 
   if (!owner || !name) {
     return <ErrorState message="Invalid repository URL" />;
@@ -70,18 +37,9 @@ export const RepoPage = () => {
     <div className="repo-page">
       <div className="repo-header">
         <h1>{repo.full_name}</h1>
-        <div className="refresh-controls">
-          <span className="refresh-timer" ref={timerRef}>
-            Updated 0s ago
-          </span>
-          <button
-            onClick={handleRefresh}
-            disabled={loading}
-            className={`refresh-button ${loading ? 'loading' : ''}`}
-          >
-            {loading ? 'Refreshing...' : '🔄 Refresh'}
-          </button>
-        </div>
+        <span className="auto-refresh-badge">
+          🔄 Auto-refreshes every 30s
+        </span>
       </div>
 
       {repo.description && (
@@ -181,12 +139,6 @@ export const RepoPage = () => {
             <p>No contributors found</p>
           )}
         </div>
-      </div>
-
-      <div className="refresh-notice">
-        <small>
-          💡 This page automatically refreshes every 30 seconds to show the latest star and fork counts
-        </small>
       </div>
     </div>
   );

@@ -1,1 +1,15 @@
+
+import { QueryClient } from '@tanstack/react-query';
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30000,
+      refetchInterval: 30000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
 export const PER_PAGE = 30

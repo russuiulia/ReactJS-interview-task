@@ -1,54 +1,37 @@
-import { useReducer, useEffect } from "react";
-import { getRepoDetails, getRepoContributors, getRepoLanguages } from "../../api/github";
-import { repoDetailsReducer, initialRepoDetailsState } from "../reducers/repoDetailsReducer";
+import { useQueries } from '@tanstack/react-query';
+import { getRepoDetails, getRepoContributors, getRepoLanguages } from '../../api/github';
 
-export const useRepoDetails = (owner: string, name: string, refreshKey = 0) => {
-  const [state, dispatch] = useReducer(repoDetailsReducer, initialRepoDetailsState);
+export const useRepoDetails = (owner: string, name: string) => {
+  const queries = useQueries({
+    queries: [
+      {
+        queryKey: ['repo', owner, name],
+        queryFn: ({ signal }) => getRepoDetails(owner, name, signal),
+        enabled: !!owner && !!name,
+      },
+      {
+        queryKey: ['contributors', owner, name],
+        queryFn: ({ signal }) => getRepoContributors(owner, name, signal),
+        enabled: !!owner && !!name,
+      },
+      {
+        queryKey: ['languages', owner, name],
+        queryFn: ({ signal }) => getRepoLanguages(owner, name, signal),
+        enabled: !!owner && !!name,
+      },
+    ],
+  });
 
-  useEffect(() => {
-    let canceled = false;
-    const controller = new AbortController();
+  const [repoQuery, contributorsQuery, languagesQuery] = queries;
 
-    dispatch({ type: "FETCH_START" });
-
-    Promise.all([
-      getRepoDetails(owner, name, controller.signal),
-      getRepoContributors(owner, name, controller.signal),
-      getRepoLanguages(owner, name, controller.signal),
-    ])
-      .then(([repoData, contributorsData, languagesData]) => {
-        if (canceled) return;
-
-        dispatch({
-          type: "FETCH_SUCCESS",
-          payload: {
-            repo: repoData,
-            contributors: contributorsData,
-            languages: languagesData,
-          },
-        });
-      })
-      .catch((err) => {
-        if (canceled) return;
-        if (err.name === "AbortError") return;
-
-        dispatch({
-          type: "FETCH_ERROR",
-          payload: err.message,
-        });
-      });
-
-    return () => {
-      canceled = true;
-      controller.abort();
-    };
-  }, [owner, name, refreshKey]);
+  const isLoading = queries.some(q => q.isLoading);
+  const error = queries.find(q => q.isError)?.error as Error | undefined;
 
   return {
-    repo: state.repo,
-    contributors: state.contributors,
-    languages: state.languages,
-    loading: state.loading,
-    error: state.error,
+    repo: repoQuery.data ?? null,
+    contributors: contributorsQuery.data ?? [],
+    languages: languagesQuery.data ?? {},
+    loading: isLoading,
+    error: error?.message ?? null,
   };
 };

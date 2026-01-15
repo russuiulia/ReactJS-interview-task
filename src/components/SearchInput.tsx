@@ -17,6 +17,7 @@ export function SearchInput({
         id="repo-search"
         type="search"
         value={value}
+        autoComplete="off"
         placeholder="Search repositories..."
         onChange={(e) => {
           setValue(e.target.value);

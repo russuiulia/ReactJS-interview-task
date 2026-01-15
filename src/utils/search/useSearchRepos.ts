@@ -1,59 +1,38 @@
-import { useEffect, useReducer, useRef } from "react";
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { searchRepos } from '../../api/github';
-import { repoSearchReducer, initialRepoSearchState } from "../reducers/repoSearchReducer";
 
 const PER_PAGE = 30;
 
-export const useSearchRepos = (query: string, page: number) => {
-  const [state, dispatch] = useReducer(repoSearchReducer, initialRepoSearchState);
-  const requestIdRef = useRef(0);
+export const useSearchRepos = (query: string) => {
+  const { 
+    data, 
+    isLoading, 
+    error, 
+    isError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
+  } = useInfiniteQuery({
+    queryKey: ['repos', query],
+    queryFn: ({ pageParam = 1, signal }) => 
+      searchRepos(query, pageParam, PER_PAGE, signal),
+    enabled: query.trim().length > 0,
+    getNextPageParam: (lastPage, allPages) => {
+      const nextPage = allPages.length + 1;
+      const totalLoaded = allPages.length * PER_PAGE;
+      return totalLoaded < lastPage.total_count ? nextPage : undefined;
+    },
+    initialPageParam: 1,
+  });
 
-  useEffect(() => {
-    if (!query.trim()) {
-      dispatch({ type: "RESET" });
-      return;
-    }
-
-    const currentId = ++requestIdRef.current;
-    let canceled = false;
-
-    dispatch({ type: "FETCH_START" });
-
-    const controller = new AbortController();
-
-    searchRepos(query, page, PER_PAGE, controller.signal)
-      .then((json) => {
-        if (canceled) return;
-        if (currentId !== requestIdRef.current) return;
-
-        const alreadyLoaded = page * PER_PAGE;
-        const hasMore = alreadyLoaded < json.total_count;
-
-        dispatch({
-          type: "FETCH_SUCCESS",
-          payload: { data: json, hasMore }
-        });
-      })
-      .catch((err) => {
-        if (canceled) return;
-        if (err.name === "AbortError") return;
-
-        dispatch({
-          type: "FETCH_ERROR",
-          payload: err.message || "Unexpected error"
-        });
-      });
-
-    return () => {
-      canceled = true;
-      controller.abort();
-    };
-  }, [query, page]);
+  const repos = data?.pages.flatMap(page => page.items) ?? [];
 
   return {
-    data: state.data,
-    loading: state.loading,
-    error: state.error,
-    hasMore: state.hasMore
+    repos,
+    loading: isLoading,
+    error: isError ? (error as Error).message : null,
+    hasMore: hasNextPage ?? false,
+    fetchNextPage,
+    isFetchingNextPage,
   };
 };
